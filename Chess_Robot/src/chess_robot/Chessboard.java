@@ -14,6 +14,11 @@ class chessPos {
 		y = 0;
 	}
 
+	chessPos(int x, int y) {
+		this.x = x;
+		this.y = y;
+	}
+
 	chessPos(chessPos pos) {
 		set(pos);
 	}
@@ -37,7 +42,7 @@ class chessPos {
 	String name() {
 		if (x % 2 != 0 || y % 2 != 0 || x == 0 || x == 18 || y == 0 || y == 18)
 			return "";
-		return String.format("%c%c\n", Character.forDigit((y / 2 + 9), 18),
+		return String.format("%c%c", Character.forDigit((y / 2 + 9), 18),
 				Character.forDigit((9 - x / 2), 10));
 	}
 
@@ -89,7 +94,19 @@ public class Chessboard {
 
 	// 4 = extra space for piece captured
 	static char[][] board = new char[15 + 4][15 + 4];
-	static boolean whiteTurn = true;
+	static String prevFen = "", fen = "", extra = "";
+	static boolean isUserTurn, isOver = false;
+	static chessPos startPos = new chessPos(), endPos = new chessPos();
+
+	static String toMove() {
+		return startPos.name() + endPos.name() + extra;
+	}
+
+	static void fromMove(String move) {
+		startPos.set(move.substring(0, 2));
+		endPos.set(move.substring(2, 4));
+		extra = move.substring(4);
+	}
 
 	static void initBoard() {
 		for (int i = 0; i < 19; i++)
@@ -101,29 +118,13 @@ public class Chessboard {
 		board[16] = "  R N B Q K B N R  ".toCharArray();
 	}
 
-	static String fen() {
-		String fen = "";
-		int count;
-		for (int i = 2; i < 17; i += 2) {
-			count = 0;
-			for (int j = 2; j < 17; j += 2) {
-				if (board[i][j] == ' ')
-					count++;
-				else {
-					if (count != 0) {
-						fen += count;
-						count = 0;
-					}
-					fen += board[i][j];
-				}
-			}
-			if (count != 0)
-				fen += count;
-			if (i != 16)
-				fen += '/';
-		}
-		return fen;
-	}
+	/*
+	 * static String fen() { String fen = ""; int count; for (int i = 2; i < 17;
+	 * i += 2) { count = 0; for (int j = 2; j < 17; j += 2) { if (board[i][j] ==
+	 * ' ') count++; else { if (count != 0) { fen += count; count = 0; } fen +=
+	 * board[i][j]; } } if (count != 0) fen += count; if (i != 16) fen += '/'; }
+	 * return fen; }
+	 */
 
 	static void printBoard() {
 		System.out.println("\n      a b c d e f g h");
@@ -134,7 +135,7 @@ public class Chessboard {
 			System.out.println(board[i]);
 		}
 		System.out.println("    " + String.valueOf(board[18]));
-		System.out.println("Fen: " + fen() + "\n");
+		System.out.println("Fen: " + fen + "\n");
 	}
 
 	static boolean canGo(chessPos pos) {
@@ -143,6 +144,37 @@ public class Chessboard {
 		if (board[pos.x][pos.y] != ' ')
 			return false;
 		return true;
+	}
+
+	static boolean isWhiteTurn() {
+		return fen.contains("w");
+	}
+
+	static chessPos findBlank() {
+		int i;
+		if (isWhiteTurn()) {
+			for (i = 0; i < 19; i += 2)
+				if (board[0][i] == ' ')
+					return new chessPos(0, i);
+			for (i = 2; i < 9; i += 2) {
+				if (board[i][0] == ' ')
+					return new chessPos(i, 0);
+				if (board[i][18] == ' ')
+					return new chessPos(i, 18);
+			}
+		} else {
+			for (i = 0; i < 19; i += 2)
+				if (board[18][i] == ' ')
+					return new chessPos(18, i);
+			for (i = 16; i > 9; i -= 2) {
+				if (board[i][0] == ' ')
+					return new chessPos(i, 0);
+				if (board[i][18] == ' ')
+					return new chessPos(i, 18);
+			}
+		}
+		// no case for this
+		return new chessPos();
 	}
 
 	static void movePiece(chessPos startPos, chessPos endPos) {
@@ -177,7 +209,8 @@ public class Chessboard {
 			pos.move(direction[pos.x][pos.y], false);
 		}
 
-		System.out.print("path: ");
+		System.out.print("path for " + startPos.name() + " -> " + endPos.name()
+				+ ": ");
 		pos.set(startPos);
 		for (dir dir : path) {
 			pos.print();
@@ -190,23 +223,74 @@ public class Chessboard {
 		board[endPos.x][endPos.y] = board[startPos.x][startPos.y];
 		board[startPos.x][startPos.y] = ' ';
 	}
-	
-	static void removePiece(chessPos pos) {
-		
-	}
 
-	static boolean isIllegalMove(chessPos startPos, chessPos endPos) {
-		// isIllegalMove <-> f == [d]
-		if (!canGo(endPos)) return true;
-		return false;
+	static void go() {
+		if (!canGo(endPos))
+			movePiece(endPos, findBlank());
+
+		// promotion, but don't change piece for convenience
+		if (!extra.isEmpty())
+			board[startPos.x][startPos.y] = extra.charAt(0);
+
+		movePiece(startPos, endPos);
+
+		// castling
+		if (board[endPos.x][endPos.y] == 'k'
+				|| board[endPos.x][endPos.y] == 'K') {
+			// king side
+			if (endPos.y - startPos.y == 4)
+				movePiece(new chessPos(endPos.x, 16),
+						new chessPos(endPos.x, 12));
+			// queen side
+			if (startPos.y - endPos.y == 4)
+				movePiece(new chessPos(endPos.x, 2), new chessPos(endPos.x, 8));
+		}
+
+		// en passant
+		if (!prevFen.split(" ")[3].equals("-") && fen.split(" ")[3].equals("-")) {
+			if (board[endPos.x][endPos.y] == 'p')
+				movePiece(new chessPos(endPos.x - 2, endPos.y), findBlank());
+			if (board[endPos.x][endPos.y] == 'P')
+				movePiece(new chessPos(endPos.x + 2, endPos.y), findBlank());
+		}
 	}
 
 	static boolean isMoveCompleted() {
 		return true;
 	}
-	
-	static boolean isOver() {
-		return false;
+
+	static boolean setTurn(Scanner sc) {
+		System.out.println("who will go first; user(0) / AI(1)");
+		try {
+			String turn = sc.nextLine();
+			if (turn.equals("0")) {
+				return true;
+			} else if (turn.equals("1")) {
+				return false;
+			}
+		} catch (Exception e) {
+		}
+		System.out.println("wrong input; choose between 0 and 1");
+		return setTurn(sc);
+	}
+
+	static String input(Scanner sc) {
+		System.out.print("move: ");
+		try {
+			String pos = sc.nextLine();
+			startPos.set(pos.substring(0, 2));
+			endPos.set(pos.substring(2, 4));
+			extra = pos.substring(4);
+			if (startPos.valid() && endPos.valid())
+				return toMove();
+		} catch (Exception e) {
+		}
+		System.out.println("wrong input; wrong format");
+		return input(sc);
+	}
+
+	static boolean quit() {
+		return startPos.isSame(endPos);
 	}
 
 	public static void main(String[] args) {
@@ -215,42 +299,56 @@ public class Chessboard {
 
 		Stockfish client = new Stockfish();
 		if (client.startEngine()) {
-			System.out.println("start Engine");
+			System.out.println("start engine");
 
 			client.sendCommand("uci");
-			client.getOutput(0);
+			client.getOutput(0, false);
+
+			client.sendCommand("position startPos");
+			fen = client.getFen();
 
 			Scanner sc = new Scanner(System.in);
 
-			// who will be first
+			isUserTurn = setTurn(sc);
 
-			while (!isOver()) {
-				// 1. position startpos -> f = [d]
-				// 2.
-				// 	2-1. user = white: input -> position fen <f> moves <input> -> f = [d] -> move = [go movetime <waitTime>] -> position fen <f> moves <move> -> f = [d]
-				//  2-2. user = black: move = [go movetime <waitTime>] -> position fen <f> moves <move> -> f = [d] -> input -> position fen <f> moves <input> -> f = [d]
-				
-				chessPos startPos = new chessPos(), endPos = new chessPos();
+			while (!isOver) {
+				String move, nextFen;
 
-				startPos.input(sc, "from: ");
-				endPos.input(sc, "to: ");
-
-				if (isIllegalMove(startPos, endPos)) {
-					System.out.println("wrong input; illegal move");
-					continue;
+				if (isUserTurn)
+					move = input(sc);
+				else {
+					move = client.getBestMove(fen, 100);
+					fromMove(move);
 				}
 
-				do {
-					movePiece(startPos, endPos);
-				} while (!isMoveCompleted());
+				if (quit())
+					break;
+
+				nextFen = client.moveAndGetFen(fen, move);
+
+				if (fen.equals(nextFen)) {
+					System.out.println("wrong input; can't move as above");
+				} else {
+					prevFen = fen;
+					fen = nextFen;
+					isUserTurn = !isUserTurn;
+
+					go();
+				}
 
 				printBoard();
-				
-				break; // for test
+
+				move = client.getBestMove(fen, 100);
+
+				if (move.equals("(none)")) {
+					isOver = true;
+					System.out.println("game over");
+				}
 			}
 
 			client.stopEngine();
+			System.out.println("stop engine");
 		} else
-			System.out.println("can't start Engine");
+			System.out.println("can't start engine");
 	}
 }
