@@ -1,7 +1,6 @@
 package stockfish;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 
@@ -21,7 +20,6 @@ public class Stockfish {
 			processWriter = new OutputStreamWriter(
 					engineProcess.getOutputStream());
 		} catch (Exception e) {
-			e.printStackTrace();
 			return false;
 		}
 		return true;
@@ -32,8 +30,7 @@ public class Stockfish {
 			sendCommand("quit");
 			processReader.close();
 			processWriter.close();
-		} catch (IOException e) {
-			e.printStackTrace();
+		} catch (Exception e) {
 		}
 	}
 
@@ -41,49 +38,47 @@ public class Stockfish {
 		try {
 			processWriter.write(command + "\n");
 			processWriter.flush();
-		} catch (IOException e) {
-			e.printStackTrace();
+		} catch (Exception e) {
 		}
 	}
 
-	public String getOutput(int waitTime) {
+	public String getOutput(int waitTime, boolean bestmove) {
 		StringBuffer buffer = new StringBuffer();
+		boolean check1 = !bestmove, check2 = false;
 
 		try {
 			Thread.sleep(waitTime);
 			sendCommand("isready");
 			while (true) {
 				String output = processReader.readLine();
+
+				if (output.contains("bestmove"))
+					check1 = true;
 				if (output.equals("readyok"))
+					check2 = true;
+
+				buffer.append(output + " \n");
+				if (check1 && check2)
 					break;
-				else
-					buffer.append(output + "\n");
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
 		}
+
 		return buffer.toString();
 	}
 
 	public String getBestMove(String fen, int waitTime) {
-		sendCommand("position fen " + fen);
 		sendCommand("go movetime " + waitTime);
-		return getOutput(waitTime).split("bestmove ")[1].split(" ")[0];
+		return getOutput(waitTime, true).split("bestmove ")[1].split(" ")[0];
 	}
 
-	public String getLegalMoves(String fen) {
-		sendCommand("position fen " + fen);
+	public String getFen() {
 		sendCommand("d");
-		return getOutput(0).split("Legal moves: ")[1];
+		return getOutput(0, false).split("Fen: ")[1].split(" \n")[0];
 	}
 
-	public void drawBoard(String fen) {
-		sendCommand("position fen " + fen);
-		sendCommand("d");
-		String[] rows = getOutput(0).split("\n");
-
-		for (int i = 1; i < 18; i++) {
-			System.out.println(rows[i]);
-		}
+	public String moveAndGetFen(String fen, String move) {
+		sendCommand("position fen " + fen + " moves " + move);
+		return getFen();
 	}
 }
