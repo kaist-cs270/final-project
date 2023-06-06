@@ -248,7 +248,7 @@ public class Chessboard {
 			System.out.println("start Engine");
 
 			client.sendCommand("uci");
-			client.getOutput(0);
+			client.getOutput(0, false);
 
 			client.sendCommand("position startPos");
 			fen = client.getFen();
@@ -265,7 +265,7 @@ public class Chessboard {
 					startPos.input(sc, "from: ");
 					endPos.input(sc, "to: ");
 
-					// for test
+					// quit game
 					if (startPos.isSame(endPos))
 						break;
 
@@ -281,7 +281,7 @@ public class Chessboard {
 					}
 
 				} else {
-					move = client.getBestMove(fen, 1);
+					move = client.getBestMove(fen, 100);
 
 					fen = client.moveAndGetFen(fen, move);
 					isUserTurn = true;

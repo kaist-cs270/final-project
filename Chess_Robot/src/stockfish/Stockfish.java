@@ -42,32 +42,39 @@ public class Stockfish {
 		}
 	}
 
-	public String getOutput(int waitTime) {
+	public String getOutput(int waitTime, boolean bestmove) {
 		StringBuffer buffer = new StringBuffer();
+		boolean check1 = !bestmove, check2 = false;
 
 		try {
 			Thread.sleep(waitTime);
 			sendCommand("isready");
 			while (true) {
 				String output = processReader.readLine();
+
+				if (output.contains("bestmove"))
+					check1 = true;
 				if (output.equals("readyok"))
+					check2 = true;
+
+				buffer.append(output + "\n");
+				if (check1 && check2)
 					break;
-				else
-					buffer.append(output + "\n");
 			}
 		} catch (Exception e) {
 		}
+
 		return buffer.toString();
 	}
 
 	public String getBestMove(String fen, int waitTime) {
 		sendCommand("go movetime " + waitTime);
-		return getOutput(waitTime + 20).split("bestmove ")[1].substring(0, 4);
+		return getOutput(waitTime, true).split("bestmove ")[1].split(" ")[0];
 	}
 
 	public String getFen() {
 		sendCommand("d");
-		return getOutput(0).split("Fen: ")[1].split("\n")[0];
+		return getOutput(0, false).split("Fen: ")[1].split("\n")[0];
 	}
 
 	public String moveAndGetFen(String fen, String move) {
