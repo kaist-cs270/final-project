@@ -102,9 +102,10 @@ def detect(path: str) -> List[List[int]]:
             x0, y0 = np.linalg.solve(A, b)
             x0 = int(x0)
             y0 = int(y0)
-            # cv2.circle(warped, (x0, y0), 5, (0, 0, 255), -1)
+            cv2.circle(warped, (x0, y0), 5, (0, 0, 255), -1)
             points.append((x0, y0))
         cross_points.append(points)
+
 
     res = []
     # save each cell as image
@@ -130,6 +131,6 @@ def detect(path: str) -> List[List[int]]:
 
 
 if __name__ == "__main__":
-    a = detect("./corner-data/test/images/1_mp4-30_jpg.rf.ba3b85836c51fce041db4e26038d4e3f.jpg")
+    a = detect("./corner-data/test/images/IMG_4982_jpeg.rf.5e20f8427550649eccbfc86d931bce02.jpg")
     for i in a:
         print(i)
