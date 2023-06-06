@@ -1,0 +1,13 @@
+train: ../final-project/server/chessboard/corner-data/train/images
+val: ../final-project/server/chessboard/corner-data/valid/images
+test: ../final-project/server/chessboard/corner-data/test/images
+
+nc: 1
+names: ['chessboard-corner']
+
+roboflow:
+  workspace: chessboard-gff7i
+  project: chessboard-corner
+  version: 3
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/chessboard-gff7i/chessboard-corner/dataset/3
