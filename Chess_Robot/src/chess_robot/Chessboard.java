@@ -94,8 +94,19 @@ public class Chessboard {
 
 	// 4 = extra space for piece captured
 	static char[][] board = new char[15 + 4][15 + 4];
-	static String fen = "";
+	static String prevFen = "", fen = "", extra = "";
 	static boolean isUserTurn, isOver = false;
+	static chessPos startPos = new chessPos(), endPos = new chessPos();
+
+	static String toMove() {
+		return startPos.name() + endPos.name() + extra;
+	}
+
+	static void fromMove(String move) {
+		startPos.set(move.substring(0, 2));
+		endPos.set(move.substring(2, 4));
+		extra = move.substring(4);
+	}
 
 	static void initBoard() {
 		for (int i = 0; i < 19; i++)
@@ -167,9 +178,6 @@ public class Chessboard {
 	}
 
 	static void movePiece(chessPos startPos, chessPos endPos) {
-		if (!canGo(endPos))
-			movePiece(endPos, findBlank());
-
 		boolean visited[][] = new boolean[15 + 4][15 + 4];
 		dir direction[][] = new dir[15 + 4][15 + 4];
 		LinkedList<chessPos> queue = new LinkedList<chessPos>();
@@ -216,6 +224,37 @@ public class Chessboard {
 		board[startPos.x][startPos.y] = ' ';
 	}
 
+	static void go() {
+		if (!canGo(endPos))
+			movePiece(endPos, findBlank());
+
+		// promotion, but don't change piece for convenience
+		if (!extra.isEmpty())
+			board[startPos.x][startPos.y] = extra.charAt(0);
+
+		movePiece(startPos, endPos);
+
+		// castling
+		if (board[endPos.x][endPos.y] == 'k'
+				|| board[endPos.x][endPos.y] == 'K') {
+			// king side
+			if (endPos.y - startPos.y == 4)
+				movePiece(new chessPos(endPos.x, 16),
+						new chessPos(endPos.x, 12));
+			// queen side
+			if (startPos.y - endPos.y == 4)
+				movePiece(new chessPos(endPos.x, 2), new chessPos(endPos.x, 8));
+		}
+
+		// en passant
+		if (!prevFen.split(" ")[3].equals("-") && fen.split(" ")[3].equals("-")) {
+			if (board[endPos.x][endPos.y] == 'p')
+				movePiece(new chessPos(endPos.x - 2, endPos.y), findBlank());
+			if (board[endPos.x][endPos.y] == 'P')
+				movePiece(new chessPos(endPos.x + 2, endPos.y), findBlank());
+		}
+	}
+
 	static boolean isMoveCompleted() {
 		return true;
 	}
@@ -235,13 +274,32 @@ public class Chessboard {
 		return setTurn(sc);
 	}
 
+	static String input(Scanner sc) {
+		System.out.print("move: ");
+		try {
+			String pos = sc.nextLine();
+			startPos.set(pos.substring(0, 2));
+			endPos.set(pos.substring(2, 4));
+			extra = pos.substring(4);
+			if (startPos.valid() && endPos.valid())
+				return toMove();
+		} catch (Exception e) {
+		}
+		System.out.println("wrong input; wrong format");
+		return input(sc);
+	}
+
+	static boolean quit() {
+		return startPos.isSame(endPos);
+	}
+
 	public static void main(String[] args) {
 		initBoard();
 		printBoard();
 
 		Stockfish client = new Stockfish();
 		if (client.startEngine()) {
-			System.out.println("start Engine");
+			System.out.println("start engine");
 
 			client.sendCommand("uci");
 			client.getOutput(0, false);
@@ -254,52 +312,43 @@ public class Chessboard {
 			isUserTurn = setTurn(sc);
 
 			while (!isOver) {
-				chessPos startPos = new chessPos(), endPos = new chessPos();
 				String move, nextFen;
 
-				if (isUserTurn) {
-					startPos.input(sc, "from: ");
-					endPos.input(sc, "to: ");
-
-					// quit game
-					if (startPos.isSame(endPos))
-						break;
-
-					move = startPos.name() + endPos.name();
-					nextFen = client.moveAndGetFen(fen, move);
-
-					if (fen.equals(nextFen)) {
-						System.out.println("wrong input; can't move");
-					} else {
-						fen = nextFen;
-						isUserTurn = false;
-						movePiece(startPos, endPos);
-					}
-
-				} else {
+				if (isUserTurn)
+					move = input(sc);
+				else {
 					move = client.getBestMove(fen, 100);
+					fromMove(move);
+				}
 
-					fen = client.moveAndGetFen(fen, move);
-					isUserTurn = true;
+				if (quit())
+					break;
 
-					startPos.set(move.substring(0, 2));
-					endPos.set(move.substring(2));
+				nextFen = client.moveAndGetFen(fen, move);
 
-					movePiece(startPos, endPos);
+				if (fen.equals(nextFen)) {
+					System.out.println("wrong input; can't move as above");
+				} else {
+					prevFen = fen;
+					fen = nextFen;
+					isUserTurn = !isUserTurn;
+
+					go();
 				}
 
 				printBoard();
-				
+
 				move = client.getBestMove(fen, 100);
 
 				if (move.equals("(none)")) {
 					isOver = true;
-					System.out.println("checkmate; game over");
-				} 
+					System.out.println("game over");
+				}
 			}
 
 			client.stopEngine();
+			System.out.println("stop engine");
 		} else
-			System.out.println("can't start Engine");
+			System.out.println("can't start engine");
 	}
 }
