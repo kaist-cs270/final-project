@@ -66,8 +66,8 @@ def detect(path: str) -> List[List[int]]:
 
     corners = np.array(final_corners[:4])
     if len(corners) < 4:
-        print("Not enough corners")
-        return
+        # print("Not enough corners")
+        return None
 
     if debug:
         new_image = image.copy()
