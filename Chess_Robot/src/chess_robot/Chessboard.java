@@ -95,7 +95,7 @@ public class Chessboard {
 	// 4 = extra space for piece captured
 	static char[][] board = new char[15 + 4][15 + 4];
 	static String fen = "";
-	static boolean isUserTurn;
+	static boolean isUserTurn, isOver = false;
 
 	static void initBoard() {
 		for (int i = 0; i < 19; i++)
@@ -220,10 +220,6 @@ public class Chessboard {
 		return true;
 	}
 
-	static boolean isOver() {
-		return false;
-	}
-
 	static boolean setTurn(Scanner sc) {
 		System.out.println("who will go first; user(0) / AI(1)");
 		try {
@@ -257,7 +253,7 @@ public class Chessboard {
 
 			isUserTurn = setTurn(sc);
 
-			while (!isOver()) {
+			while (!isOver) {
 				chessPos startPos = new chessPos(), endPos = new chessPos();
 				String move, nextFen;
 
@@ -273,7 +269,7 @@ public class Chessboard {
 					nextFen = client.moveAndGetFen(fen, move);
 
 					if (fen.equals(nextFen)) {
-						System.out.println("wrong input; illegal move");
+						System.out.println("wrong input; can't move");
 					} else {
 						fen = nextFen;
 						isUserTurn = false;
@@ -293,6 +289,13 @@ public class Chessboard {
 				}
 
 				printBoard();
+				
+				move = client.getBestMove(fen, 100);
+
+				if (move.equals("(none)")) {
+					isOver = true;
+					System.out.println("checkmate; game over");
+				} 
 			}
 
 			client.stopEngine();

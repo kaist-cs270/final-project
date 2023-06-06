@@ -57,7 +57,7 @@ public class Stockfish {
 				if (output.equals("readyok"))
 					check2 = true;
 
-				buffer.append(output + "\n");
+				buffer.append(output + " \n");
 				if (check1 && check2)
 					break;
 			}
@@ -74,7 +74,7 @@ public class Stockfish {
 
 	public String getFen() {
 		sendCommand("d");
-		return getOutput(0, false).split("Fen: ")[1].split("\n")[0];
+		return getOutput(0, false).split("Fen: ")[1].split(" \n")[0];
 	}
 
 	public String moveAndGetFen(String fen, String move) {
