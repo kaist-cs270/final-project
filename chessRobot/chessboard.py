@@ -110,23 +110,23 @@ class Chessboard:
     @classmethod
     def findBlank(cls):
         if cls.isWhiteTurn():
-            for i in range(2, 17, 2):
+            '''for i in range(2, 17, 2):
                 if cls.board[0][i] == ' ':
-                    return ChessPos(0, i)
-            '''for i in range(2, 9, 2):
+                    return ChessPos(0, i)'''
+            for i in range(2, 9, 2):
                 if cls.board[i][0] == ' ':
                     return ChessPos(i, 0)
                 if cls.board[i][18] == ' ':
-                    return ChessPos(i, 18)'''
+                    return ChessPos(i, 18)
         else:
-            for i in range(2, 17, 2):
+            '''for i in range(2, 17, 2):
                 if cls.board[18][i] == ' ':
-                    return ChessPos(18, i)
-            '''for i in range(16, 9, -2):
+                    return ChessPos(18, i)'''
+            for i in range(16, 9, -2):
                 if cls.board[i][0] == ' ':
                     return ChessPos(i, 0)
                 if cls.board[i][18] == ' ':
-                    return ChessPos(i, 18)'''
+                    return ChessPos(i, 18)
         # no case for this
         return ChessPos()
 
