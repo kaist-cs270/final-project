@@ -26,6 +26,7 @@ class Chess:
     read_state: int = 0
     past_detect_states: List[List[List[int]]] = []
     next_move = None
+    cnt = 0
 
     @classmethod
     def get_state_from_past(cls) -> List[str]:
@@ -53,9 +54,9 @@ class Chess:
             if cls.read_state != 0:
                 return "dropped"
             cls.read_state = 1
-            filename = tmp_filename / f"image-{cnt}.jpg"
+            filename = tmp_filename / f"image-{cls.cnt}.jpg"
             print(f"save to: {filename}")
-            cnt += 1
+            cls.cnt += 1
             async with async_open(filename, "wb") as f:
                 await f.write(await file.read())
             res = detect(filename)
