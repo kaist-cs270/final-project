@@ -1,37 +1,29 @@
 from enum import Enum
 from stockfish import Stockfish
 
-
 class ChessPos:
     def __init__(self, x=0, y=0):
         self.x = x
         self.y = y
-
+    
     def set(self, pos):
         self.x = pos.x
         self.y = pos.y
-
+    
     # 1, 3, ... , 17: gap / 0, 2, ... , 18: piece
     def valid(self):
         return 0 <= self.x <= 18 and 0 <= self.y <= 18
-
+    
     # a1 -> 16, 2
     def setFromName(self, name):
         self.x = (9 - int(name[1])) * 2
-        self.y = (ord(name[0]) - ord("a") + 1) * 2
-
+        self.y = (ord(name[0]) - ord('a') + 1) * 2
+    
     def name(self):
-        if (
-            self.x % 2 != 0
-            or self.y % 2 != 0
-            or self.x == 0
-            or self.x == 18
-            or self.y == 0
-            or self.y == 18
-        ):
+        if self.x % 2 != 0 or self.y % 2 != 0 or self.x == 0 or self.x == 18 or self.y == 0 or self.y == 18:
             return ""
         return f"{chr(self.y // 2 - 1 + ord('a'))}{int(9 - self.x // 2)}"
-
+    
     def input(self, msg):
         try:
             name = input(msg)
@@ -43,17 +35,16 @@ class ChessPos:
         except:
             pass
         self.input(msg)
-
+    
     def print(self):
-        print(f"({self.x}, {self.y})", end="")
-
+        print(f"({self.x}, {self.y})", end='')
+    
     def move(self, direction, forward):
         self.x += direction.value[0] * (1 if forward else -1)
         self.y += direction.value[1] * (1 if forward else -1)
-
+    
     def isSame(self, pos):
         return self.x == pos.x and self.y == pos.y
-
 
 class Direction(Enum):
     up = (-1, 0)
@@ -61,14 +52,14 @@ class Direction(Enum):
     down = (1, 0)
     left = (0, -1)
 
-
 class Chessboard:
+
     # lower case: black, upper case: white
-    # King, Queen, Rook, Bishop, kNight, Pawn
+	# King, Queen, Rook, Bishop, kNight, Pawn
     PIECE = " rnbqkpRNBQKP"
 
     # 4 = extra space for piece captured
-    board = [[" "] * (15 + 4) for _ in range(15 + 4)]
+    board = [[' '] * (15 + 4) for _ in range(15 + 4)]
     prevFen = ""
     fen = ""
     extra = ""
@@ -87,7 +78,7 @@ class Chessboard:
         cls.startPos.setFromName(move[:2])
         cls.endPos.setFromName(move[2:4])
         cls.extra = move[4:]
-
+    
     @classmethod
     def initBoard(cls):
         cls.board[2] = list("  r n b q k b n r  ")
@@ -99,49 +90,49 @@ class Chessboard:
     def printBoard(cls):
         print("\n      a b c d e f g h")
         print("      ---------------")
-        print("    " + "".join(cls.board[0]))
+        print("    " + ''.join(cls.board[0]))
         for i in range(2, 17, 2):
-            print(f"{9 - i // 2} | " + "".join(cls.board[i]))
-        print("    " + "".join(cls.board[18]))
+            print(f"{9 - i // 2} | " + ''.join(cls.board[i]))
+        print("    " + ''.join(cls.board[18]))
         print("Fen: " + cls.fen + "\n")
 
     @classmethod
-    def canGo(cls, pos, moveRobot=False):
+    def canGo(cls, pos, moveRobot = False):
         if not pos.valid():
             return False
-        if not moveRobot and cls.board[pos.x][pos.y] != " ":
+        if not moveRobot and cls.board[pos.x][pos.y] != ' ':
             return False
         return True
 
     @classmethod
     def isWhiteTurn(cls):
-        return "w" in cls.fen
+        return 'w' in cls.fen
 
     @classmethod
     def findBlank(cls):
         if cls.isWhiteTurn():
-            """for i in range(2, 17, 2):
-            if cls.board[0][i] == ' ':
-                return ChessPos(0, i)"""
+            '''for i in range(2, 17, 2):
+                if cls.board[0][i] == ' ':
+                    return ChessPos(0, i)'''
             for i in range(2, 9, 2):
-                if cls.board[i][0] == " ":
+                if cls.board[i][0] == ' ':
                     return ChessPos(i, 0)
-                if cls.board[i][18] == " ":
+                if cls.board[i][18] == ' ':
                     return ChessPos(i, 18)
         else:
-            """for i in range(2, 17, 2):
-            if cls.board[18][i] == ' ':
-                return ChessPos(18, i)"""
+            '''for i in range(2, 17, 2):
+                if cls.board[18][i] == ' ':
+                    return ChessPos(18, i)'''
             for i in range(16, 9, -2):
-                if cls.board[i][0] == " ":
+                if cls.board[i][0] == ' ':
                     return ChessPos(i, 0)
-                if cls.board[i][18] == " ":
+                if cls.board[i][18] == ' ':
                     return ChessPos(i, 18)
         # no case for this
         return ChessPos()
 
     @classmethod
-    def movePiece(cls, startPos, endPos, moveRobot=False):
+    def movePiece(cls, startPos, endPos, moveRobot = False):
         visited = [[False] * (15 + 4) for _ in range(15 + 4)]
         direction = [[None] * (15 + 4) for _ in range(15 + 4)]
         queue = []
@@ -169,17 +160,17 @@ class Chessboard:
             path.insert(0, direction[pos.x][pos.y])
             pos.move(direction[pos.x][pos.y], False)
 
-        print(f"path for {startPos.name()} -> {endPos.name()}: ", end="")
+        print(f"path for {startPos.name()} -> {endPos.name()}: ", end='')
         pos.set(startPos)
         for dir in path:
             pos.print()
-            print(f" -> {dir.name} -> ", end="")
+            print(f" -> {dir.name} -> ", end='')
             pos.move(dir, True)
         pos.print()
         print()
 
         cls.board[endPos.x][endPos.y] = cls.board[startPos.x][startPos.y]
-        cls.board[startPos.x][startPos.y] = " "
+        cls.board[startPos.x][startPos.y] = ' '
         cls.robotPos.set(endPos)
 
     @classmethod
@@ -194,16 +185,16 @@ class Chessboard:
 
         cls.movePiece(cls.startPos, cls.endPos)
 
-        if cls.board[cls.endPos.x][cls.endPos.y] in "kK":
+        if cls.board[cls.endPos.x][cls.endPos.y] in 'kK':
             if cls.endPos.y - cls.startPos.y == 4:
                 cls.movePiece(ChessPos(cls.endPos.x, 16), ChessPos(cls.endPos.x, 12))
             if cls.startPos.y - cls.endPos.y == 4:
                 cls.movePiece(ChessPos(cls.endPos.x, 2), ChessPos(cls.endPos.x, 8))
 
         if cls.prevFen.split(" ")[3] != "-" and cls.fen.split(" ")[3] == "-":
-            if cls.board[cls.endPos.x][cls.endPos.y] == "p":
+            if cls.board[cls.endPos.x][cls.endPos.y] == 'p':
                 cls.movePiece(ChessPos(cls.endPos.x - 2, cls.endPos.y), cls.findBlank())
-            if cls.board[cls.endPos.x][cls.endPos.y] == "P":
+            if cls.board[cls.endPos.x][cls.endPos.y] == 'P':
                 cls.movePiece(ChessPos(cls.endPos.x + 2, cls.endPos.y), cls.findBlank())
 
     @classmethod
@@ -293,7 +284,6 @@ class Chessboard:
             print("stop engine")
         else:
             print("can't start engine")
-
 
 if __name__ == "__main__":
     Chessboard.main()
