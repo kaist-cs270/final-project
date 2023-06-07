@@ -22,15 +22,24 @@ def diff(board1: List[List[int]], board2: List[List[int]]) -> int:
     return res
 
 
+def get_diff(board1: List[List[int]], board: List[List[int]]) -> List[Tuple[int, int]]:
+    res = []
+    for i in range(8):
+        for j in range(8):
+            if board[i][j] != board[i][j]:
+                res.append((i, j))
+    return res
+
+
 def count_board(board) -> Tuple[int, int]:
     w_cnt = 0
     b_cnt = 0
 
     for i in range(8):
         for j in range(8):
-            if next[i][j] == 0:
+            if board[i][j] == 0:
                 b_cnt += 1
-            if next[i][j] == 2:
+            if board[i][j] == 2:
                 w_cnt += 1
 
     return w_cnt, b_cnt
@@ -41,6 +50,7 @@ def print_board(board: List[List[int]]):
         for j in i:
             print(j, end="")
         print()
+
 
 class Chess:
     read_state: int = 0
@@ -129,7 +139,7 @@ class Chess:
                         min_diff = d
                         min_res = res
 
-            print(min_res)
+            print_board(min_res)
             cls.past_detect_states.append(min_res)
             if len(cls.past_detect_states) > 10:
                 cls.past_detect_states.pop(0)
@@ -137,15 +147,25 @@ class Chess:
             if cls.curr_state is None:
                 cls.curr_state = min_res
 
-            # todo: Connect to java
-
             if not cls.check_valid(min_res):
+                cls.read_state = 0
                 return "not valid"
-            
-            
 
-            cls.next_move = "a1a2"
+            d = get_diff(min_res, cls.curr_state)
 
+            if len(d) == 0:
+                cls.read_state = 0
+                return "not changed"
+
+            if min_res[d[0][0]][d[0][1]] == 1:
+                move_from = chr(d[0][1] + ord("a")) + str(9 - d[0][0])
+                move_to = chr(d[1][1] + ord("a")) + str(9 - d[1][0])
+            else:
+                move_from = chr(d[1][1] + ord("a")) + str(9 - d[1][0])
+                move_to = chr(d[0][1] + ord("a")) + str(9 - d[0][0])
+
+            move = move_from + move_to
+            
         except Exception as e:
             cls.read_state = 0
             raise e

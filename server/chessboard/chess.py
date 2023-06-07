@@ -3,18 +3,20 @@ from typing import List, Tuple
 from ultralytics import YOLO
 import numpy as np
 import cv2
+from shapely import Polygon
 
 curr = Path(__file__).parent
 
 corner_model = YOLO(curr / "./board-seg-best.pt")
-piece_model = YOLO(curr / "./runs/classify/chessboard-corner5/weights/best.pt")
 
 debug = True
 debugCount = 0
 
+
 def write_img(path: str, image: np.ndarray):
     global debugCount
     cv2.imwrite(f"{path}-debug-{debugCount}.jpg", image)
+    cv2.imwrite(f"debug-{debugCount}.jpg", image)
     debugCount += 1
 
 
@@ -35,44 +37,58 @@ def warp_image(
     return warped
 
 
+def check_piece(img: np.ndarray) -> int:
+    b_cnt = 0
+    w_cnt = 0
+
+    w, h, _ = img.shape
+
+    for i in range(w // 4, 3 * w // 4):
+        for j in range(h // 4, 3 * h // 4):
+            [r, g, b] = img[i, j]
+            if r < 50 and g < 50 and b < 50:
+                b_cnt += 1
+            if r > 150 and g > 150 and b > 150:
+                w_cnt += 1
+    
+    # print(b_cnt, w_cnt)
+    if w_cnt > w * h // 4 // 6:
+        return 2
+    if b_cnt > w * h // 4 // 6:
+        return 0
+    return 1
+
 def detect(path: str) -> List[List[int]]:
     global debugCount
     debugCount = 0
     base_path = path.split(".")[0]
     image = cv2.imread(path)
-    cv2.imwrite("1.jpg", image)
 
     if debug:
         write_img(base_path, image)
 
     results = corner_model.predict(image, save=False, verbose=False)
-    print(results[0])
-    boxes = results[0].boxes.xyxy.numpy().tolist()
-    corners = list(
-        map(lambda box: [(box[0] + box[2]) / 2, (box[1] + box[3]) / 2], boxes)
-    )
-    
-    if len(corners) == 0:
-        return None
+    mask = results[0].masks.xy[0]
+    poly = Polygon(mask)
+    tol = 1000
+    b = 500
+    while b > 0.01:
+        rect = poly.simplify(tol, preserve_topology=False)
+        l = len(list(rect.exterior.coords))
+        if l == 5:
+            break
+        elif l > 5:
+            tol += b
+        else:
+            tol -= b
+        b /= 2
+        
+    corners = np.array(list(rect.exterior.coords)[:-1], dtype=np.float32)
+    if debug:
+        new_image = image.copy()
+        cv2.polylines(new_image, [np.array(mask, dtype=int)], True, (0, 0, 255), 1)
+        write_img(base_path, new_image)
 
-    # Sort corners by convex hull algorithm
-    corners = np.array(corners, dtype=np.float32)
-    corners = cv2.convexHull(corners)
-    corners = corners.reshape((-1, 2))
-
-    final_corners = []
-
-    # If corners are too close, remove them
-    for y, x in corners:
-        flag = False
-        for p, q in final_corners:
-            if abs(p - y) < 10 and abs(q - x) < 10:
-                flag = True
-                break
-        if not flag:
-            final_corners.append((y, x))
-
-    corners = np.array(final_corners[:4])
     if len(corners) < 4:
         # print("Not enough corners")
         return None
@@ -82,7 +98,13 @@ def detect(path: str) -> List[List[int]]:
         new_corners = corners.copy()
         new_corners = new_corners.astype(int)
         for i in range(4):
-            cv2.line(new_image, tuple(new_corners[i]), tuple(new_corners[(i + 1) % 4]), (0, 0, 255), 2)
+            cv2.line(
+                new_image,
+                tuple(new_corners[i]),
+                tuple(new_corners[(i + 1) % 4]),
+                (0, 0, 255),
+                2,
+            )
         write_img(base_path, new_image)
 
     warped = warp_image(image, corners, (640, 640))
@@ -119,7 +141,7 @@ def detect(path: str) -> List[List[int]]:
             idx = int((m + 40) / 80)
             if idx >= 0 and idx < 9:
                 horizontal_lines[idx] = (rho, theta)
-    
+
     if debug:
         new_image = warped.copy()
         for rho, theta in horizontal_lines:
@@ -188,8 +210,7 @@ def detect(path: str) -> List[List[int]]:
                 np.array([[x1, y1], [x2, y2], [x3, y3], [x4, y4]], dtype=np.float32),
                 (80, 80),
             )
-            t = piece_model.predict(img, save=False, verbose=False)[0].probs.top1
-            l.append(t if t != 3 else 1)
+            l.append(check_piece(img))
         res.append(l)
 
     return res
@@ -197,6 +218,8 @@ def detect(path: str) -> List[List[int]]:
 
 if __name__ == "__main__":
     debug = True
-    a = detect("./data/board-data/test/images/image-121_jpg.rf.6896e7db80af364fb3de0708a651a4e3.jpg")
+    a = detect(
+        "./data/board-data/test/images/image-21_jpg.rf.9fe85f4bdad0cfb0726799f81c15c5e5.jpg"
+    )
     for i in a:
         print(i)
