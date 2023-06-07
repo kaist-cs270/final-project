@@ -1,6 +1,6 @@
 from pathlib import Path
 from tempfile import gettempdir
-from typing import List
+from typing import List, Tuple
 from aiofile import async_open
 from fastapi import File, UploadFile
 from server.chessboard.chess import detect
@@ -22,11 +22,64 @@ def diff(board1: List[List[int]], board2: List[List[int]]) -> int:
     return res
 
 
+def count_board(board) -> Tuple[int, int]:
+    w_cnt = 0
+    b_cnt = 0
+
+    for i in range(8):
+        for j in range(8):
+            if next[i][j] == 0:
+                b_cnt += 1
+            if next[i][j] == 2:
+                w_cnt += 1
+
+    return w_cnt, b_cnt
+
+
+def print_board(board: List[List[int]]):
+    for i in board:
+        for j in i:
+            print(j, end="")
+        print()
+
 class Chess:
     read_state: int = 0
     past_detect_states: List[List[List[int]]] = []
     next_move = None
     cnt = 0
+    curr_state: List[List[int]] = None
+
+    @classmethod
+    def init(cls) -> None:
+        cls.curr_state = []
+        for i in range(8):
+            t = []
+            for _ in range(8):
+                if i < 2:
+                    t.append(0)
+                elif i < 6:
+                    t.append(1)
+                else:
+                    t.append(2)
+
+        for _ in range(10):
+            cls.past_detect_states.append(cls.curr_state)
+
+    @classmethod
+    def check_valid(cls, next) -> bool:
+        w1, b1 = count_board(next)
+        w2, b2 = count_board(cls.curr_state)
+        d = diff(cls.curr_state, next)
+
+        if d == 0:
+            return True
+        if w1 == w2 and b1 == b2 and d == 2:
+            return True
+        if w1 == w2 - 1 and b1 == b2 and d == 2:
+            return True
+        if b1 == b2 - 1 and w1 == w2 and d == 2:
+            return True
+        return False
 
     @classmethod
     def get_state_from_past(cls) -> List[str]:
@@ -81,7 +134,15 @@ class Chess:
             if len(cls.past_detect_states) > 10:
                 cls.past_detect_states.pop(0)
 
+            if cls.curr_state is None:
+                cls.curr_state = min_res
+
             # todo: Connect to java
+
+            if not cls.check_valid(min_res):
+                return "not valid"
+            
+            
 
             cls.next_move = "a1a2"
 

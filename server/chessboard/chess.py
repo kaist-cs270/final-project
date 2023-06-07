@@ -6,7 +6,7 @@ import cv2
 
 curr = Path(__file__).parent
 
-corner_model = YOLO(curr / "./runs/detect/chessboard-corner4/weights/best.pt")
+corner_model = YOLO(curr / "./board-seg-best.pt")
 piece_model = YOLO(curr / "./runs/classify/chessboard-corner5/weights/best.pt")
 
 debug = True
@@ -46,6 +46,7 @@ def detect(path: str) -> List[List[int]]:
         write_img(base_path, image)
 
     results = corner_model.predict(image, save=False, verbose=False)
+    print(results[0])
     boxes = results[0].boxes.xyxy.numpy().tolist()
     corners = list(
         map(lambda box: [(box[0] + box[2]) / 2, (box[1] + box[3]) / 2], boxes)
@@ -196,6 +197,6 @@ def detect(path: str) -> List[List[int]]:
 
 if __name__ == "__main__":
     debug = True
-    a = detect("./corner-data/test/images/IMG_4982_jpeg.rf.5e20f8427550649eccbfc86d931bce02.jpg")
+    a = detect("./data/board-data/test/images/image-121_jpg.rf.6896e7db80af364fb3de0708a651a4e3.jpg")
     for i in a:
         print(i)

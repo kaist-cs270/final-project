@@ -12,7 +12,7 @@ def main():
 
 @main.command()
 def train():
-    model = YOLO("yolov8n.pt")
+    model = YOLO("yolov8n-seg.pt")
 
     model.train(
         data="data/board-data/data.yaml",
