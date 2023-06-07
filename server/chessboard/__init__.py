@@ -85,7 +85,7 @@ class Chess:
             raise e
         finally:
             cls.read_state = 0
-            return "ok"
+            return f"ok: {filename}"
 
     @classmethod
     def get_move(cls):
