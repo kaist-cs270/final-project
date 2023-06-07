@@ -15,10 +15,10 @@ def train():
     model = YOLO("yolov8n.pt")
 
     model.train(
-        data=curr / "corner-data/data.yaml",
+        data="data/board-data/data.yaml",
         imgsz=640,
         epochs=100,
-        batch=8,
+        batch=16,
         name="chessboard-corner",
     )
 
