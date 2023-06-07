@@ -83,9 +83,8 @@ class Chess:
         except Exception as e:
             cls.read_state = 0
             raise e
-        finally:
-            cls.read_state = 0
-            return f"ok: {filename}"
+        cls.read_state = 0
+        return "ok"
 
     @classmethod
     def get_move(cls):
