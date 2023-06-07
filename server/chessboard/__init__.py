@@ -59,7 +59,7 @@ class Chess:
             cls.cnt += 1
             async with async_open(filename, "wb") as f:
                 await f.write(await file.read())
-            res = detect(filename)
+            res = detect(str(filename))
             if res == None:
                 return "failed"
             state = cls.get_state_from_past()
