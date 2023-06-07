@@ -67,6 +67,7 @@ class Chessboard:
     isOver = False
     startPos = ChessPos()
     endPos = ChessPos()
+    robotPos = ChessPos()
 
     @classmethod
     def toMove(cls):
@@ -96,10 +97,10 @@ class Chessboard:
         print("Fen: " + cls.fen + "\n")
 
     @classmethod
-    def canGo(cls, pos):
+    def canGo(cls, pos, moveRobot = False):
         if not pos.valid():
             return False
-        if cls.board[pos.x][pos.y] != ' ':
+        if not moveRobot and cls.board[pos.x][pos.y] != ' ':
             return False
         return True
 
@@ -131,7 +132,7 @@ class Chessboard:
         return ChessPos()
 
     @classmethod
-    def movePiece(cls, startPos, endPos):
+    def movePiece(cls, startPos, endPos, moveRobot = False):
         visited = [[False] * (15 + 4) for _ in range(15 + 4)]
         direction = [[None] * (15 + 4) for _ in range(15 + 4)]
         queue = []
@@ -149,7 +150,7 @@ class Chessboard:
                 nextDir = dir
 
                 nextPos.move(nextDir, True)
-                if cls.canGo(nextPos) and not visited[nextPos.x][nextPos.y]:
+                if cls.canGo(nextPos, moveRobot) and not visited[nextPos.x][nextPos.y]:
                     visited[nextPos.x][nextPos.y] = True
                     direction[nextPos.x][nextPos.y] = nextDir
                     queue.append(nextPos)
@@ -170,9 +171,12 @@ class Chessboard:
 
         cls.board[endPos.x][endPos.y] = cls.board[startPos.x][startPos.y]
         cls.board[startPos.x][startPos.y] = ' '
+        cls.robotPos.set(endPos)
 
     @classmethod
     def go(cls):
+        cls.movePiece(cls.robotPos, cls.startPos, True)
+
         if not cls.canGo(cls.endPos):
             cls.movePiece(cls.endPos, cls.findBlank())
 
