@@ -54,6 +54,7 @@ class Chess:
                 return "dropped"
             cls.read_state = 1
             filename = tmp_filename / f"image-{cnt}.jpg"
+            print(f"save to: {filename}")
             cnt += 1
             async with async_open(filename, "wb") as f:
                 await f.write(await file.read())

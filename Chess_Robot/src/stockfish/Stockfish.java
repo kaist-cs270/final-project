@@ -10,7 +10,7 @@ public class Stockfish {
 	private BufferedReader processReader;
 	private OutputStreamWriter processWriter;
 
-	private static final String PATH = "./engine/stockfish.exe";
+	private static final String PATH = "./engine/stockfish";
 
 	public boolean startEngine() {
 		try {
