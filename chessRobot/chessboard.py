@@ -160,6 +160,7 @@ class Chessboard:
             path.insert(0, direction[pos.x][pos.y])
             pos.move(direction[pos.x][pos.y], False)
 
+        print(moveRobot)
         print(f"path for {startPos.name()} -> {endPos.name()}: ", end='')
         pos.set(startPos)
         for dir in path:
@@ -169,8 +170,9 @@ class Chessboard:
         pos.print()
         print()
 
-        cls.board[endPos.x][endPos.y] = cls.board[startPos.x][startPos.y]
-        cls.board[startPos.x][startPos.y] = ' '
+        if not moveRobot:
+            cls.board[endPos.x][endPos.y] = cls.board[startPos.x][startPos.y]
+            cls.board[startPos.x][startPos.y] = ' '
         cls.robotPos.set(endPos)
 
     @classmethod
