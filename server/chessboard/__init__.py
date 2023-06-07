@@ -60,19 +60,23 @@ class Chess:
             async with async_open(filename, "wb") as f:
                 await f.write(await file.read())
             res = detect(str(filename))
-            if res == None:
+            if res is None:
+                cls.read_state = 0
                 return "failed"
-            state = cls.get_state_from_past()
-            min_diff = diff(state, res)
+
             min_res = res
+            if len(cls.past_detect_states) > 0:
+                state = cls.get_state_from_past()
+                min_diff = diff(state, res)
 
-            for _ in range(4):
-                res = rotate(res)
-                d = diff(state, res)
-                if d < min_diff:
-                    min_diff = d
-                    min_res = res
+                for _ in range(4):
+                    res = rotate(res)
+                    d = diff(state, res)
+                    if d < min_diff:
+                        min_diff = d
+                        min_res = res
 
+            print(min_res)
             cls.past_detect_states.append(min_res)
             if len(cls.past_detect_states) > 10:
                 cls.past_detect_states.pop(0)
@@ -89,7 +93,7 @@ class Chess:
 
     @classmethod
     def get_move(cls):
-        if cls.next_move == None:
+        if cls.next_move is None:
             return "none"
         return cls.next_move
 
