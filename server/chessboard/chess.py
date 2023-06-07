@@ -6,8 +6,16 @@ import cv2
 
 curr = Path(__file__).parent
 
-corner_model = YOLO(curr / "./runs/detect/chessboard-corner4/weights/best.pt")
+corner_model = YOLO(curr / "./board-seg-best.pt")
 piece_model = YOLO(curr / "./runs/classify/chessboard-corner5/weights/best.pt")
+
+debug = True
+debugCount = 0
+
+def write_img(path: str, image: np.ndarray):
+    global debugCount
+    cv2.imwrite(f"{path}-debug-{debugCount}.jpg", image)
+    debugCount += 1
 
 
 def warp_image(
@@ -28,12 +36,24 @@ def warp_image(
 
 
 def detect(path: str) -> List[List[int]]:
+    global debugCount
+    debugCount = 0
+    base_path = path.split(".")[0]
     image = cv2.imread(path)
+    cv2.imwrite("1.jpg", image)
+
+    if debug:
+        write_img(base_path, image)
+
     results = corner_model.predict(image, save=False, verbose=False)
+    print(results[0])
     boxes = results[0].boxes.xyxy.numpy().tolist()
     corners = list(
         map(lambda box: [(box[0] + box[2]) / 2, (box[1] + box[3]) / 2], boxes)
     )
+    
+    if len(corners) == 0:
+        return None
 
     # Sort corners by convex hull algorithm
     corners = np.array(corners, dtype=np.float32)
@@ -54,14 +74,28 @@ def detect(path: str) -> List[List[int]]:
 
     corners = np.array(final_corners[:4])
     if len(corners) < 4:
-        print("Not enough corners")
-        return
+        # print("Not enough corners")
+        return None
+
+    if debug:
+        new_image = image.copy()
+        new_corners = corners.copy()
+        new_corners = new_corners.astype(int)
+        for i in range(4):
+            cv2.line(new_image, tuple(new_corners[i]), tuple(new_corners[(i + 1) % 4]), (0, 0, 255), 2)
+        write_img(base_path, new_image)
 
     warped = warp_image(image, corners, (640, 640))
+
+    if debug:
+        write_img(base_path, warped)
 
     gray = cv2.cvtColor(warped, cv2.COLOR_BGR2GRAY)
     edges = cv2.Canny(gray, 50, 150, apertureSize=3)
     lines = cv2.HoughLines(edges, 1, np.pi / 180, 150)
+
+    if lines is None:
+        return None
 
     horizontal_lines = [(i * 80, np.pi / 2) for i in range(9)]
     vertical_lines = [(i * 80, 0) for i in range(9)]
@@ -85,6 +119,33 @@ def detect(path: str) -> List[List[int]]:
             idx = int((m + 40) / 80)
             if idx >= 0 and idx < 9:
                 horizontal_lines[idx] = (rho, theta)
+    
+    if debug:
+        new_image = warped.copy()
+        for rho, theta in horizontal_lines:
+            a = np.cos(theta)
+            b = np.sin(theta)
+            x0 = a * rho
+            y0 = b * rho
+            x1 = int(x0 + 10000 * (-b))
+            y1 = int(y0 + 10000 * (a))
+            x2 = int(x0 - 10000 * (-b))
+            y2 = int(y0 - 10000 * (a))
+
+            cv2.line(new_image, (x1, y1), (x2, y2), (0, 0, 255), 2)
+
+        for rho, theta in vertical_lines:
+            a = np.cos(theta)
+            b = np.sin(theta)
+            x0 = a * rho
+            y0 = b * rho
+            x1 = int(x0 + 10000 * (-b))
+            y1 = int(y0 + 10000 * (a))
+            x2 = int(x0 - 10000 * (-b))
+            y2 = int(y0 - 10000 * (a))
+
+            cv2.line(new_image, (x1, y1), (x2, y2), (0, 0, 255), 2)
+        write_img(base_path, new_image)
 
     cross_points = []
 
@@ -102,10 +163,15 @@ def detect(path: str) -> List[List[int]]:
             x0, y0 = np.linalg.solve(A, b)
             x0 = int(x0)
             y0 = int(y0)
-            cv2.circle(warped, (x0, y0), 5, (0, 0, 255), -1)
             points.append((x0, y0))
         cross_points.append(points)
 
+    if debug:
+        new_image = warped.copy()
+        for i in range(9):
+            for j in range(9):
+                cv2.circle(new_image, cross_points[i][j], 5, (0, 0, 255), -1)
+        write_img(base_path, new_image)
 
     res = []
     # save each cell as image
@@ -126,11 +192,11 @@ def detect(path: str) -> List[List[int]]:
             l.append(t if t != 3 else 1)
         res.append(l)
 
-    cv2.imwrite("1.jpg", warped)
     return res
 
 
 if __name__ == "__main__":
-    a = detect("./corner-data/test/images/IMG_4982_jpeg.rf.5e20f8427550649eccbfc86d931bce02.jpg")
+    debug = True
+    a = detect("./data/board-data/test/images/image-121_jpg.rf.6896e7db80af364fb3de0708a651a4e3.jpg")
     for i in a:
         print(i)

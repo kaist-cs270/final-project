@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 1
+names: ['chessboard-detect']
+
+roboflow:
+  workspace: chessboard-gff7i
+  project: chessboard-detect
+  version: 1
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/chessboard-gff7i/chessboard-detect/dataset/1
